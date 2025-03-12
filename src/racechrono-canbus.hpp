@@ -33,7 +33,10 @@
 #include <freertos/semphr.h>
 
 /// define to build the decoder for the BMW g8x
-#define CONFIG_CANBUS_DECODER_BMWG8X 1
+// #define CONFIG_CANBUS_DECODER_BMWG8X 1
+
+/// define to build the decoder for the MAZDA MX-5 MK3 MK3.5 MK3.75
+#define CONFIG_CANBUS_DECODER_MAZDANCEC 1
 
 /// statistics timeout in microseconds
 #define CONFIG_RC_STATS_TIMEOUT 5000000
