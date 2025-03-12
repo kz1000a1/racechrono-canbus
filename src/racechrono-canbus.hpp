@@ -42,7 +42,7 @@
 #define CONFIG_RC_STATS_TIMEOUT 5000000
 
 /// if DEBUG is defined, logger will be enabled and print to serial console
-// #define DEBUG
+#define DEBUG
 
 /// _x branch is likely to be true
 #define RCLIKELY(_x)    __builtin_expect(!!(_x), 1)
