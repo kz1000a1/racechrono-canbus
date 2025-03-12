@@ -27,6 +27,7 @@
 #include <BLE2902.h>
 #include <BLECharacteristic.h>
 #include <BLEDevice.h>
+#include <esp_mac.h>
 
 namespace racechrono
 {
