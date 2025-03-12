@@ -27,7 +27,11 @@
 #include <esp_intr_alloc.h>
 #include <esp_rom_gpio.h>
 #include <hal/twai_ll.h>
-#include <driver/periph_ctrl.h>
+// #include <driver/periph_ctrl.h>
+#include <esp_clk_tree.h>
+#include <driver/gpio.h>
+#include <esp_private/gpio.h>
+#include <soc/io_mux_reg.h>
 
 #include "controller.hpp"
 
@@ -102,14 +106,41 @@ bool controller::install() noexcept
     bootln("CAN bus starting...");
 
     ENTER_CRITICAL();
+    
+    // get timing and filter from car specific decoder
+    twai_timing_config_t t_config = CANDEC.timing();
+    twai_filter_config_t f_config = CANDEC.filter();
 
     bootln("CAN bus creating frame queue...");
     _queue = xQueueCreateStatic(_queue_length, _queue_item_size, _queue_storage, &_static_queue);
     bootln("CAN bus frame queue created...");
 
     // enable APB CLK to TWAI peripheral
-    periph_module_reset(PERIPH_TWAI_MODULE);
-    periph_module_enable(PERIPH_TWAI_MODULE);
+    // periph_module_reset(PERIPH_TWAI_MODULE);
+    // periph_module_enable(PERIPH_TWAI_MODULE);
+
+    //Get clock source resolution
+    uint32_t clock_source_hz = 0;
+    soc_periph_twai_clk_src_t clk_src = t_config.clk_src;
+    //Fall back to default clock source
+    if (clk_src == 0) {
+        clk_src = TWAI_CLK_SRC_DEFAULT;
+    }
+    esp_clk_tree_src_get_freq_hz((soc_module_clk_t)clk_src, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &clock_source_hz);
+
+    //Check brp validation
+    uint32_t brp = t_config.brp;
+    if (t_config.quanta_resolution_hz) {
+        brp = clock_source_hz / t_config.quanta_resolution_hz;
+    }
+    
+    uint8_t __DECLARE_RCC_ATOMIC_ENV;
+
+    twai_ll_enable_bus_clock(0, true);
+    twai_ll_reset_register(0);
+    twai_ll_set_clock_source(0, t_config.clk_src);
+    twai_ll_enable_clock(0, true);
+    
     bootln("CAN bus peripheral enabled...");
 
     twai_ll_enter_reset_mode(dev);
@@ -121,7 +152,13 @@ bool controller::install() noexcept
 #if SOC_TWAI_SUPPORT_MULTI_ADDRESS_LAYOUT
     twai_ll_enable_extended_reg_layout(dev);
 #endif
+
+#if defined(DEBUG)
+    twai_ll_set_mode(dev, TWAI_MODE_NORMAL);
+#else
     twai_ll_set_mode(dev, TWAI_MODE_LISTEN_ONLY);    // freeze REC by changing to LOM mode
+#endif
+    
     // reset RX and TX error counters
     twai_ll_set_rec(dev, 0);
     twai_ll_set_tec(dev, 0);
@@ -130,38 +167,49 @@ bool controller::install() noexcept
     bootln("CAN bus mode reset...");
 
     // configure bus timing, acceptance filter, CLKOUT, and interrupts
-    // get timing and filter from car specific decoder
-    twai_timing_config_t t_config = CANDEC.timing();
-    twai_filter_config_t f_config = CANDEC.filter();
-
-    twai_ll_set_bus_timing(dev, t_config.brp, t_config.sjw, t_config.tseg_1, t_config.tseg_2, t_config.triple_sampling);
+    twai_ll_set_bus_timing(dev, brp, t_config.sjw, t_config.tseg_1, t_config.tseg_2, t_config.triple_sampling);
     twai_ll_set_acc_filter(dev, f_config.acceptance_code, f_config.acceptance_mask, f_config.single_filter);
     twai_ll_set_clkout(dev, 0);
     // enable interrupts
     // disable tx interrupts, as we are listen-only
     // disable data overrun and wakeup interrupts (both have issues on ESP32)
+#if defined(DEBUG)
+    twai_ll_set_enabled_intrs(dev, 0xE7);
+#else
     twai_ll_set_enabled_intrs(dev, 0xA7); //0xE7);
+#endif
     (void) twai_ll_get_and_clear_intrs(dev);    // clear any latched interrupts
 
     EXIT_CRITICAL();
 
     bootln("CAN bus timings reset...");
-    bootln("          BRP: %3u", t_config.brp);
+    bootln("          BRP: %3u", brp);
     bootln("          SJW: %3u", t_config.sjw);
     bootln("        TSEG1: %3u", t_config.tseg_1);
     bootln("        TSEG2: %3u", t_config.tseg_2);
     bootln("  3x Sampling: %3s", t_config.triple_sampling == 0 ? "No" : "Yes");
 
     // only setup RX pin, we aren't transmitting any CAN messages on bus
-    gpio_set_pull_mode(CAN_RX_PIN, GPIO_FLOATING);
-    esp_rom_gpio_connect_in_signal(CAN_RX_PIN, TWAI_RX_IDX, false);
-    esp_rom_gpio_pad_select_gpio(CAN_RX_PIN);
+    // gpio_set_pull_mode(CAN_RX_PIN, GPIO_FLOATING);
+    // esp_rom_gpio_connect_in_signal(CAN_RX_PIN, TWAI_RX_IDX, false);
+    // esp_rom_gpio_pad_select_gpio(CAN_RX_PIN);
+    // gpio_set_direction(CAN_RX_PIN, GPIO_MODE_INPUT);
+    gpio_func_sel(CAN_RX_PIN, PIN_FUNC_GPIO);
+    // gpio_input_enable(CAN_RX_PIN);
     gpio_set_direction(CAN_RX_PIN, GPIO_MODE_INPUT);
+    esp_rom_gpio_connect_in_signal(CAN_RX_PIN, twai_controller_periph_signals.controllers[0].rx_sig, false);
+#if defined(DEBUG)
+    gpio_func_sel(CAN_TX_PIN, PIN_FUNC_GPIO);
+    esp_rom_gpio_connect_out_signal(CAN_TX_PIN, twai_controller_periph_signals.controllers[0].tx_sig, false, false);
+#endif
     bootln("CAN bus GPIO pins reset...");
 
     // setup interrupt service routine
     esp_intr_alloc(ETS_TWAI_INTR_SOURCE, ESP_INTR_FLAG_LEVEL1, isr, this, &_isr_handle);
     bootln("CAN bus interrupt handler installed...");
+
+    esp_intr_enable(_isr_handle);
+    bootln("CAN bus interrupt handler enabled...");
 
     return true;
 }
