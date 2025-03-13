@@ -85,7 +85,7 @@
 #define BLE_PWR_LVL ESP_PWR_LVL_P9
 #endif
 
-// M5Stack Atom CAN
+// M5Stack AtomS3 CAN
 #if defined(ARDUINO_M5STACK_ATOMS3)
 #define LED_BUILTIN 13
 #define CAN_RX_PIN GPIO_NUM_6
