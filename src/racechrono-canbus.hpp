@@ -77,6 +77,14 @@
 #define BLE_PWR_LVL ESP_PWR_LVL_P9
 #endif
 
+// M5Stack Atom CAN
+#if defined(ARDUINO_M5STACK_ATOM)
+#define LED_BUILTIN 13
+#define CAN_RX_PIN GPIO_NUM_19
+#define CAN_TX_PIN GPIO_NUM_22
+#define BLE_PWR_LVL ESP_PWR_LVL_P9
+#endif
+
 /// disable copy
 #define CPP_NOCOPY(_name)                     \
     _name(_name const&) = delete;             \
