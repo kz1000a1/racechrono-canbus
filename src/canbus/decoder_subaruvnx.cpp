@@ -30,7 +30,7 @@ namespace canbus
  * decode for SUBARU LEVORG VNx vehicles.
  * 
  * Based on the document of 2nd gen FT86 CAN-bus signals, data formats, units, formulas (factors + offsets)
- * https://github.com/ukmook/ft86/blob/main/can_bus/gen2.md
+ * https://github.com/timurrrr/ft86/blob/main/can_bus/gen2.md
  */
 class decoder_subaruvnx
     : public decoder
@@ -57,7 +57,7 @@ public:
     twai_filter_config_t filter() const noexcept override
     {
         return { .acceptance_code = (0x040 << 21) | (0x345 << 5),
-                 .acceptance_mask = (0x17b << 21) | (0x000 << 5) | 0xf000f,
+                 .acceptance_mask = (0x17b << 21) | (0x0d7 << 5) | 0xf000f,
                  .single_filter = false };
     }
 
@@ -73,9 +73,6 @@ public:
                 return 2;
             // SPEED / BRAKE PRESSURE - 50hz
             case 0x139:
-                return 2;
-            // VEHICLE SPEED FL / FR / RL / RR - 50hz
-            case 0x13A:
                 return 2;
             // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
             case 0x13B:
@@ -96,7 +93,7 @@ public:
 
 private:
     explicit decoder_subaruvnx() noexcept
-        : decoder(8)
+        : decoder(7)
     {
         // pre-sorted list of pids
         // list must be sorted by ID, as binary search is used
@@ -106,7 +103,6 @@ private:
         _ids[idx++] = { 0x040, rate_disabled, 0 }; // ENGINE RPM / ACCELERATOR POSITION (%) - 100hz
         _ids[idx++] = { 0x138, rate_disabled, 0 }; // STEERING ANGLE / YAW RATE - 50hz
         _ids[idx++] = { 0x139, rate_disabled, 0 }; // SPEED / BRAKE PRESSURE (%) - 50hz
-        _ids[idx++] = { 0x13A, rate_disabled, 0 }; // VEHICLE SPEED FL / FR / RL / RR - 50hz
         _ids[idx++] = { 0x13B, rate_disabled, 0 }; // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
         _ids[idx++] = { 0x345, rate_disabled, 0 }; // ENGINE OIL TEMPERATURE / COOLANT TEMPERATURE - 10hz
         _ids[idx++] = { 0x390, rate_disabled, 0 }; // AIR TEMPERATURE - 10hz
