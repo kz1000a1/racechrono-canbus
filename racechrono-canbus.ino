@@ -34,9 +34,8 @@ namespace
 {
 
 constexpr uint32_t core0_stack_size = 6 * 1024;
-StaticTask_t core0_buffer;
-StackType_t core0_stack[core0_stack_size];
 TaskHandle_t core0_handle;
+BaseType_t core0_base;
 volatile bool core0_started = false;
 
 void core0(void*);
@@ -69,14 +68,13 @@ void setup()
 
     assert(xPortGetCoreID() == 1);
 
-    core0_handle = xTaskCreateStaticPinnedToCore(
+    core0_base = xTaskCreateUniversal(
         core0,
         "racechrono",
         core0_stack_size,
         nullptr,
         tskIDLE_PRIORITY,
-        core0_stack,
-        &core0_buffer,
+        &core0_handle,
         0
     );
     RCASSERT(core0_handle);
