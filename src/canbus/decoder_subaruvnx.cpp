@@ -57,7 +57,7 @@ public:
     twai_filter_config_t filter() const noexcept override
     {
         return { .acceptance_code = (0x040 << 21) | (0x345 << 5),
-                 .acceptance_mask = (0x17b << 21) | (0x0d7 << 5) | 0xf000f,
+                 .acceptance_mask = (0x17b << 21) | (0x1d7 << 5) | 0xf000f,
                  .single_filter = false };
     }
 
@@ -80,6 +80,9 @@ public:
             // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
             case 0x13B:
                 return 2;
+            // Clutch position (%) / Gear - 20hz
+            case 0x241:
+                return 1;
             // ENGINE OIL TEMPERATURE / COOLANT TEMPERATURE - 10hz
             case 0x345:
                 return 1;
@@ -96,7 +99,7 @@ public:
 
 private:
     explicit decoder_subaruvnx() noexcept
-        : decoder(8)
+        : decoder(9)
     {
         // pre-sorted list of pids
         // list must be sorted by ID, as binary search is used
@@ -108,6 +111,7 @@ private:
         _ids[idx++] = { 0x139, rate_disabled, 0 }; // SPEED / BRAKE PRESSURE (%) - 50hz
         _ids[idx++] = { 0x13A, rate_disabled, 0 }; // Wheel speed FL / Wheel speed FR / Wheel speed RL / Wheel speed RR - 50hz
         _ids[idx++] = { 0x13B, rate_disabled, 0 }; // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
+        _ids[idx++] = { 0x241, rate_disabled, 0 }; // Clutch position (%) / Gear - 20hz
         _ids[idx++] = { 0x345, rate_disabled, 0 }; // ENGINE OIL TEMPERATURE / COOLANT TEMPERATURE - 10hz
         _ids[idx++] = { 0x390, rate_disabled, 0 }; // AIR TEMPERATURE - 10hz
         _ids[idx++] = { 0x393, rate_disabled, 0 }; // FUEL LEVEL (%) - 10hz
