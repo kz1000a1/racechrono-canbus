@@ -74,6 +74,9 @@ public:
             // SPEED / BRAKE PRESSURE - 50hz
             case 0x139:
                 return 2;
+            // Wheel speed FL / Wheel speed FR / Wheel speed RL / Wheel speed RR - 50hz
+            case 0x13A:
+                return 2;
             // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
             case 0x13B:
                 return 2;
@@ -93,7 +96,7 @@ public:
 
 private:
     explicit decoder_subaruvnx() noexcept
-        : decoder(7)
+        : decoder(8)
     {
         // pre-sorted list of pids
         // list must be sorted by ID, as binary search is used
@@ -103,6 +106,7 @@ private:
         _ids[idx++] = { 0x040, rate_disabled, 0 }; // ENGINE RPM / ACCELERATOR POSITION (%) - 100hz
         _ids[idx++] = { 0x138, rate_disabled, 0 }; // STEERING ANGLE / YAW RATE - 50hz
         _ids[idx++] = { 0x139, rate_disabled, 0 }; // SPEED / BRAKE PRESSURE (%) - 50hz
+        _ids[idx++] = { 0x13A, rate_disabled, 0 }; // Wheel speed FL / Wheel speed FR / Wheel speed RL / Wheel speed RR - 50hz
         _ids[idx++] = { 0x13B, rate_disabled, 0 }; // LATERAL ACCELERATION / LONGITUDINAL ACCELERATION / COMBINED ACCELERATION - 50hz
         _ids[idx++] = { 0x345, rate_disabled, 0 }; // ENGINE OIL TEMPERATURE / COOLANT TEMPERATURE - 10hz
         _ids[idx++] = { 0x390, rate_disabled, 0 }; // AIR TEMPERATURE - 10hz
