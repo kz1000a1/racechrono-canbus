@@ -56,8 +56,8 @@ public:
 
     twai_filter_config_t filter() const noexcept override
     {
-        return { .acceptance_code = (0x040 << 21) | (0x345 << 5),
-                 .acceptance_mask = (0x17b << 21) | (0x1d7 << 5) | 0xf000f,
+        return { .acceptance_code = (0x138 << 21) | (0x040 << 5),
+                 .acceptance_mask = (0x003 << 21) | (0x3d7 << 5) | 0xf000f,
                  .single_filter = false };
     }
 
