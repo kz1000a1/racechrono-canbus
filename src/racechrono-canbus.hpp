@@ -74,7 +74,7 @@
 
 // ESP32 Dev Module
 #if defined(ARDUINO_ESP32_DEV)
-#define LED_BUILTIN 13
+#define LED_BUILTIN 23
 #define CAN_RX_PIN GPIO_NUM_26
 #define CAN_TX_PIN GPIO_NUM_25
 #define BLE_PWR_LVL ESP_PWR_LVL_P9
